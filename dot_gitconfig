@@ -1,0 +1,6 @@
+[user]
+	email = randypanopio@gmail.com
+	name = Randy Panopio
+
+[alias]
+  squash-all = "!f(){ git reset $(git commit-tree HEAD^{tree} \"$@\");};f"
