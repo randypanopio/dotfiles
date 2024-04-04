@@ -1,30 +1,50 @@
 #!/bin/bash
+#TODO ensure dotfiles are synced, but recursive chezmoi apply.. 
 echo "🐠 Running run once base install script..."
-#TODO ensure dotfiles are synced
+
+# formatting stuffs
+highlight="\e[34m" # red
+warn_highlight="\e[31m" # blue
+reset_format="\e[0m"
+print="echo -e"
+# highlight text: ${highlight} <text> ${reset_format} 
 
 # installer based install 
 function check_and_install_app() {
     app_name="$1"
     installer="$2"
     update="$3"
+    elevated="$4" # pass su/sudo if it should be elevated access
 
     if ! which "$app_name" > /dev/null 2>&1; then
-        echo "🚧 ${highlight} ${app_name} ${reset_format} not found. It might exist eleswhere, but was not found in system path. Installing globally using $installer..."
-        $installer install $app_name
+        $print "🚧 ${warn_highlight} ${app_name} ${reset_format} not found. It might exist eleswhere, but was not found in system path. Installing globally using $installer..."
+
+        # run command in a subshell separate from the script's scope, maybe security? idunnolol
+        ($elevated $installer install $app_name)
     else
-        echo "⚓ ${highlight} ${app_name} ${reset_format} already installed. located at: $(which "$app_name")"
+        $print "⚓ ${highlight} ${app_name} ${reset_format} already installed. located at: $(which "$app_name")"
         if [[ $update == "update" ]]; then
-        echo "⬆️  Updating ${highlight} ${app_name} ${reset_format}"
-        $installer upgrade ${app_name}
+        $print "⬆️  Updating ${highlight} ${app_name} ${reset_format}"
+
+        ($elevated $installer upgrade ${app_name})
         fi
     fi
 }
 
-# formatting - TODO check what executes, if its bash, then suppress
-highlight="\033[0;33m"
-warn_highlight="\033[0;31m"
-reset_format="\033[0m"
-# highlight text: ${highlight} <text> ${reset_format} 
+# =============== actual executed scripts ===============
+# setup privilege access
+privileged_access="sudo"
+function set_privileged_access({
+    # I was initially running su vs sudo but running sudo on all is probably fine, will need to change when running for powershell
+    privileged_access="sudo"
+    $print "using ${highlight} ${privileged_access} ${reset_format} for elevated privilege"
+
+    $print "\n${highlight}"
+    $print "**WARNING:** Prompting you with sudo access, this is to pass sudo access to specific install commands"
+    $print "${reset_format}"
+    $privileged_access echo "** granted ${privileged_access} privilege **"
+})
+set_privileged_access
 
 # process OS vars and installers
 os_name="unknown"
@@ -36,130 +56,137 @@ function set_os_vars(){
         cat_os_release=$(cat /etc/os-release)
         if [[ $cat_os_release =~ "ID=ubuntu" ]]; then
             os_distro="ubuntu"
-            echo "Detected Ubuntu system."
+            $print "Detected Ubuntu system."
             os_installer="apt-get"
-            echo "OS installer set to: ${highlight} ${os_installer} ${reset_format} updating installer...\n"
-            $os_installer update
+            $print "OS installer set to: ${highlight} ${os_installer} ${reset_format} updating installer...\n"
+            $privileged_access $os_installer update
         elif [[ $cat_os_release =~ "ID=debian" ]]; then
             os_distro="ubuntu"
-            echo "Detected Ubuntu system."
+            $print "Detected Debian system."
             os_installer="apt-get"
-            echo "OS installer set to: ${highlight} ${os_installer} ${reset_format} updating installer...\n"
-            $os_installer update
+            $print "OS installer set to: ${highlight} ${os_installer} ${reset_format} updating installer...\n"
+            $privileged_access $os_installer update
         else
-            echo "${warn_highlight}"
-            echo "⚠️ Unsupported OS: ${os_name}, or distro: ${os_distro}, halting script..."
-            echo "${reset_format}"
+            $print "${warn_highlight}"
+            $print "⚠️ Unsupported OS: ${os_name}, or distro: ${os_distro}, halting script..."
+            $print "${reset_format}"
             exit 1
         fi
         
     elif [[ $os_name == "Darwin" ]]; then
         # TODO figure out macOS mess
         os_installer="apt"
-        echo "OS installer set to: ${highlight} ${os_installer} ${reset_format} updating installer...\n"
+        $print "Detected macOS system."
+        $print "OS installer set to: ${highlight} ${os_installer} ${reset_format} updating installer...\n"
+        $privileged_access $os_installer update
     else
-        echo "${warn_highlight}"
-        echo "⚠️ Unsupported OS: ${os_name} halting script..."
-        echo "${reset_format}"
+        $print "${warn_highlight}"
+        $print "⚠️ Unsupported OS: ${os_name} halting script..."
+        $print "${reset_format}"
         exit 1
     fi    
 }
 set_os_vars
 
 # Install ZSH - base shell for everything
-echo "\n${highlight}"
-echo "🐠 Installing and setting default shell to Zsh"
-echo "${reset_format}"
+$print "\n${highlight}"
+$print "🐠 Installing and setting default shell to Zsh"
+$print "${reset_format}"
 # safe to assume zsh is installed on a macos platform probably...
 function install_zsh(){
     if [[ $os_name == "Linux" ]]; then        
-        check_and_install_app "zsh" "${os_installer}"
+        check_and_install_app "zsh" "${os_installer}" "${privileged_access}"
     elif [[ $os_name == "Darwin" ]]; then
         if which zsh >/dev/null 2>&1; then
-            echo "⚓ ${highlight} zsh ${reset_format} already installed. located at: $(which "$app_name")"
+            $print "⚓ ${highlight} zsh ${reset_format} already installed. located at: $(which "$app_name")"
         else
-            echo "${warn_highlight}"
-            echo "⚠️  Zsh not found on a Mac Installation, that shouldn't have happened! exiting..."
-            echo "${reset_format}"
+            $print "${warn_highlight}"
+            $print "⚠️ Zsh not found on a Mac Installation, that shouldn't have happened! exiting..."
+            $print "${reset_format}"
             exit 1
         fi
     else 
-        echo "${warn_highlight}"
-        echo "⚠️ Unsupported OS: ${os_name} halting script..."
-        echo "${reset_format}"
+        $print "${warn_highlight}"
+        $print "⚠️ Unsupported OS: ${os_name} halting script..."
+        $print "${reset_format}"
         exit 1
     fi
     
-    # Check installation status
+    # Check installation status, add to path if missing
+    #grep if export PATH="/usr/local/bin:$PATH" is already set in ~/.zshrc if not then add
+    
+
+    # Do another installation check
     if which zsh >/dev/null 2>&1; then
-        echo "✅ zsh installation successful!"
+        $print "✅ zsh installation successful!"
     else
-        echo "❌ zsh installation failed. exiting..."
+        $print "❌ zsh installation failed. exiting..."
         exit 1
     fi
 
     # Check if zsh is the current default shell
-    current_shell=$(echo $SHELL) # TODO fix
+    new_shell="zsh"
+    current_shell=$(echo $SHELL)
 
-    if [[ "$current_shell" == "zsh" ]]; then
-        echo "⚓ zsh is already your default shell."
+    if [[ "$current_shell" == $(which zsh) ]]; then
+        $print "⚓ zsh is already your default shell."
     else
-        echo "changing default shell to zsh."
-        # TODO figure me out, way to execute without user input
-        # sudo chsh -s $(which zsh)
-        # # Verify the change
-        # new_shell=$(grep /zsh /etc/passwd | cut -d ":" -f 1)
-        # echo "$(echo $SHELL)"
-        if [[ "$new_shell" == "zsh" ]]; then
-            echo "✅ zsh has been set as your default shell successfully."
-        else
-            echo "${warn_highlight}"
-            echo "⚠️ An error occurred while setting zsh as the default shell. ${os_name} halting script..."
-            echo "${reset_format}"
-            exit 1
-        fi
+        $print "changing default shell to $new_shell."
+        $privileged_access chsh -s $(which $new_shell)
+        
+        # Verify the change, I dont think I can get this to easily work..
+        # if [[ "$current_shell" == $(which $new_shell) ]]; then
+        #     $print "✅ $new_shell has been set as your default shell successfully."
+        # else
+        #     $print "${warn_highlight}"
+        #     $print "⚠️  An error occurred while setting $new_shell as the default shell! May need to manually change default shell to $new_shell."
+        #     $print "${reset_format}"
+        # fi
+        $print "${highlight}"
+        $print "⚠️  Skipping validation of setting $new_shell as the default shell! May need to manually change default shell to $new_shell."
+        $print "${reset_format}"
     fi
+
 }
 install_zsh
 
-#grep if export PATH="/usr/local/bin:$PATH" is already set in ~/.zshrc if not then add
 
 # Install Homebrew
-echo "\n${highlight}"
-echo "🐠 Installing Homebrew and adding to Shell Paths"
-echo "${reset_format}"
+$print "\n${highlight}"
+$print "🐠 Installing Homebrew and adding to Shell Paths"
+$print "${reset_format}"
 function install_homebrew() {
     if which brew >/dev/null 2>&1; then
-        echo "⚓🍺 ${highlight} Homebrew ${reset_format} installed! found at: $(which brew) "
+        $print "⚓🍺 ${highlight} Homebrew ${reset_format} installed! found at: $(which brew) "
         return 0
     else
         # https://github.com/Homebrew/install/#install-homebrew-on-macos-or-linux
         brew_command="NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)""      
-        echo "🚧 ${highlight} Installing 🍺 Homebrew... ${reset_format}"
+        $print "🚧 ${highlight} Installing 🍺 Homebrew... ${reset_format}"
         NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
     fi
 
     # Check installation status
     if which brew >/dev/null 2>&1; then
-        echo "✅ brew installation successful!"
+        $print "✅ brew installation successful!"
         return 0
     else
-        echo "❌ brew installation failed. exiting..."
+        $print "❌ brew installation failed. exiting..."
         exit 1
     fi
 }
 install_homebrew
 
 # Language and Tooling
-echo "\n${highlight}"
-echo "🐠 Installing Languages and Tooling"
-echo "${reset_format}"
+$print "\n${highlight}"
+$print "🐠 Installing Languages and Tooling"
+$print "${reset_format}"
 check_and_install_app "python3" "$os_installer" 
 
 # Tools
-echo "\n${highlight}"
-echo "🐠 Installing Tools"
-echo "${reset_format}"
+$print "\n${highlight}"
+$print "🐠 Installing Tools"
+$print "${reset_format}"
 check_and_install_app "git" "$os_installer" "update"
 check_and_install_app "build-essential" "$os_installer" 
 # also check these in case they dont get installed
@@ -169,17 +196,17 @@ check_and_install_app "valgrind" "$os_installer"
 check_and_install_app "zsh" "brew"
 
 # Productivity
-echo "\n${highlight}"
-echo "🐠 Installing Productivity Apps"
-echo "${reset_format}"
+$print "\n${highlight}"
+$print "🐠 Installing Productivity Apps"
+$print "${reset_format}"
 check_and_install_app "tmux" "brew" # my fave multiplexer
 check_and_install_app "nvim" "brew" # fallback editor, but vscode is great for hooking debuggers so...
 check_and_install_app "chezmoi" "brew" # syncing dotfiles, which this script is originally going to execute, but if manually running then we install
 
 # Others
-echo "\n${highlight}"
-echo "🐠 Installing Utilities and Misc. Applications"
-echo "${reset_format}"
+$print "\n${highlight}"
+$print "🐠 Installing Utilities and Misc. Applications"
+$print "${reset_format}"
 # check_and_install_app "docker" "$os_installer" # we love containers!
 check_and_install_app "git" "$os_installer" # howd you run this script without git?
 check_and_install_app "openfortivpn" "$os_installer" # vpn client for fortinet vpns 
@@ -190,29 +217,30 @@ install_omyzsh(){
     zsh_url="https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh"
     oh_my_zsh_installer="sh -c "$(curl -fsSL $zsh_url)"" # taken from https://ohmyz.sh/#install
     if ! command -v zsh >/dev/null 2>&1; then
-      echo "⚠️ Zsh not found!"
+      $print "⚠️ Zsh not found!"
       # TODO add to list of failed installs
       return 1
     fi
     # Check if Oh My Zsh is already installed
     if [ -d "$HOME/.oh-my-zsh" ]; then
-        echo "⚓ ${highlight} Oh My Zsh ${reset_format} already installed."
+        $print "⚓ ${highlight} Oh My Zsh ${reset_format} already installed."
         return 0  # Indicate success
     fi
     # Proceed with installation
-    echo "Installing Oh My Zsh remote script: $zsh_url"
+    $print "Installing Oh My Zsh remote script: $zsh_url"
     (eval "$oh_my_zsh_installer")  # Execute installation in a subshell
 
     # Check installation status
     if [ -d "$HOME/.oh-my-zsh" ]; then
-        echo "✅ Oh My Zsh installation successful!"
+        $print "✅ Oh My Zsh installation successful!"
         return 0  # Indicate success
     else
-        echo "❌ Oh My Zsh installation failed."
+        $print "❌ Oh My Zsh installation failed."
         return 1  # Indicate error
     fi
 }
 
 # code - vscode editor plugin (might be useful for ssh vscode integrations)
 
-echo "\n\n🐠 Run once base install script complete."
+$print "\n\n🐠 Run once base install script complete. Restart/Logout to finish setup."
+exit 0
