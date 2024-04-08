@@ -11,39 +11,39 @@ print="echo -e"
 
 # installer based install 
 function check_and_install_app() {
-    app_name="$1"
-    installer="$2"
-    update="$3"
-    elevated="$4" # pass su/sudo if it should be elevated access
+    local application=${1-}
+    local installer=${2-$os_installer}
+    local elevated=${3-""} # pass su/sudo if it should be elevated access
+    local update=${4-""} # for upgrading 
 
-    if ! which "$app_name" > /dev/null 2>&1; then
-        $print "🚧 ${warn_highlight} ${app_name} ${reset_format} not found. It might exist eleswhere, but was not found in system path. Installing globally using $installer..."
+    $print "formatted command: [$elevated $installer install $condition $application]"
+    if ! which "$application" > /dev/null 2>&1; then
+        $print "🚧 ${warn_highlight} ${application} ${reset_format} not found. It might exist eleswhere, but was not found in system path. Installing globally using $installer..."
 
         # run command in a subshell separate from the script's scope, maybe security? idunnolol
-        ($elevated $installer install $app_name)
-    else
-        $print "⚓ ${highlight} ${app_name} ${reset_format} already installed. located at: $(which "$app_name")"
-        if [[ $update == "update" ]]; then
-        $print "⬆️  Updating ${highlight} ${app_name} ${reset_format}"
-
-        ($elevated $installer upgrade ${app_name})
-        fi
+        $print "command: $elevated $installer install $application"
+        ($elevated $installer install $application)
+    fi
+    if [[ $update == "update" || $update == "yes" || $update == "upgrade" ]]; then
+        $print "⬆️  Updating ${highlight} ${application} ${reset_format}"
+        ($elevated $installer upgrade $application)
     fi
 }
 
 # =============== actual executed scripts ===============
 # setup privilege access
 privileged_access="sudo"
-function set_privileged_access({
+function set_privileged_access(){
     # I was initially running su vs sudo but running sudo on all is probably fine, will need to change when running for powershell
     privileged_access="sudo"
     $print "using ${highlight} ${privileged_access} ${reset_format} for elevated privilege"
 
     $print "\n${highlight}"
+    $print "**WARNING:** This script will bypass all install prompt and will install dependancies automatically"
     $print "**WARNING:** Prompting you with sudo access, this is to pass sudo access to specific install commands"
     $print "${reset_format}"
     $privileged_access echo "** granted ${privileged_access} privilege **"
-})
+}
 set_privileged_access
 
 # process OS vars and installers
@@ -53,18 +53,20 @@ os_installer="unknown"
 function set_os_vars(){
     os_name=$(uname)
     if [[ $os_name == "Linux" ]]; then      
+        # export DEBIAN_FRONTEND=noninteractive # set unineteractive installation for linux
+        # $print "setting an uninetractive installation for Linux: DEBIAN_FRONTEND=noninteractive"
         cat_os_release=$(cat /etc/os-release)
         if [[ $cat_os_release =~ "ID=ubuntu" ]]; then
             os_distro="ubuntu"
             $print "Detected Ubuntu system."
-            os_installer="apt-get"
-            $print "OS installer set to: ${highlight} ${os_installer} ${reset_format} updating installer...\n"
+            os_installer="DEBIAN_FRONTEND=noninteractive apt-get -y"
+            $print "OS installer set to: ${os_installer} updating installer...\n"
             $privileged_access $os_installer update
         elif [[ $cat_os_release =~ "ID=debian" ]]; then
             os_distro="ubuntu"
             $print "Detected Debian system."
-            os_installer="apt-get"
-            $print "OS installer set to: ${highlight} ${os_installer} ${reset_format} updating installer...\n"
+            os_installer="DEBIAN_FRONTEND=noninteractive apt-get -y"
+            $print "OS installer set to: ${os_installer} updating installer...\n"
             $privileged_access $os_installer update
         else
             $print "${warn_highlight}"
@@ -74,10 +76,9 @@ function set_os_vars(){
         fi
         
     elif [[ $os_name == "Darwin" ]]; then
-        # TODO figure out macOS mess
-        os_installer="apt"
+        os_installer="brew"
         $print "Detected macOS system."
-        $print "OS installer set to: ${highlight} ${os_installer} ${reset_format} updating installer...\n"
+        $print "OS installer set to: ${os_installer} updating installer...\n"
         $privileged_access $os_installer update
     else
         $print "${warn_highlight}"
@@ -86,96 +87,44 @@ function set_os_vars(){
         exit 1
     fi    
 }
-set_os_vars
+# set_os_vars
 
-# Install ZSH - base shell for everything
-$print "\n${highlight}"
-$print "🐠 Installing and setting default shell to Zsh"
-$print "${reset_format}"
-# safe to assume zsh is installed on a macos platform probably...
-function install_zsh(){
-    if [[ $os_name == "Linux" ]]; then        
-        check_and_install_app "zsh" "${os_installer}" "${privileged_access}"
-    elif [[ $os_name == "Darwin" ]]; then
-        if which zsh >/dev/null 2>&1; then
-            $print "⚓ ${highlight} zsh ${reset_format} already installed. located at: $(which "$app_name")"
-        else
-            $print "${warn_highlight}"
-            $print "⚠️ Zsh not found on a Mac Installation, that shouldn't have happened! exiting..."
-            $print "${reset_format}"
-            exit 1
-        fi
-    else 
-        $print "${warn_highlight}"
-        $print "⚠️ Unsupported OS: ${os_name} halting script..."
-        $print "${reset_format}"
-        exit 1
-    fi
-    
-    # Check installation status, add to path if missing
-    #grep if export PATH="/usr/local/bin:$PATH" is already set in ~/.zshrc if not then add
-    
+# # Install Homebrew
+# bash './scripts/brew_install.sh'
+# install_exit_code=$?
+# if [[ $install_exit_code -eq 0 ]]; then
+#     $print "ℹ️  brew_install complete."
+# else
+#     $print "${warn_highlight}"
+#     $print "⚠️ brew_install failed! halting script..."
+#     $print "${reset_format}" 
+#     exit 1
+# fi
 
-    # Do another installation check
-    if which zsh >/dev/null 2>&1; then
-        $print "✅ zsh installation successful!"
-    else
-        $print "❌ zsh installation failed. exiting..."
-        exit 1
-    fi
+# Install zsh
+bash './scripts/zsh_install.sh'
+install_exit_code=$?
+if [[ $install_exit_code -eq 0 ]]; then
+    $print "ℹ️  zsh_install complete."
+else
+    $print "${warn_highlight}"
+    $print "⚠️ zsh_install failed! halting script..."
+    $print "${reset_format}" 
+    exit 1
+fi
 
-    # Check if zsh is the current default shell
-    new_shell="zsh"
-    current_shell=$(echo $SHELL)
-
-    if [[ "$current_shell" == $(which zsh) ]]; then
-        $print "⚓ zsh is already your default shell."
-    else
-        $print "changing default shell to $new_shell."
-        $privileged_access chsh -s $(which $new_shell)
-        
-        # Verify the change, I dont think I can get this to easily work..
-        # if [[ "$current_shell" == $(which $new_shell) ]]; then
-        #     $print "✅ $new_shell has been set as your default shell successfully."
-        # else
-        #     $print "${warn_highlight}"
-        #     $print "⚠️  An error occurred while setting $new_shell as the default shell! May need to manually change default shell to $new_shell."
-        #     $print "${reset_format}"
-        # fi
-        $print "${highlight}"
-        $print "⚠️  Skipping validation of setting $new_shell as the default shell! May need to manually change default shell to $new_shell."
-        $print "${reset_format}"
-    fi
-
-}
-install_zsh
-
-
-# Install Homebrew
-$print "\n${highlight}"
-$print "🐠 Installing Homebrew and adding to Shell Paths"
-$print "${reset_format}"
-function install_homebrew() {
-    if which brew >/dev/null 2>&1; then
-        $print "⚓🍺 ${highlight} Homebrew ${reset_format} installed! found at: $(which brew) "
-        return 0
-    else
-        # https://github.com/Homebrew/install/#install-homebrew-on-macos-or-linux
-        brew_command="NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)""      
-        $print "🚧 ${highlight} Installing 🍺 Homebrew... ${reset_format}"
-        NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-    fi
-
-    # Check installation status
-    if which brew >/dev/null 2>&1; then
-        $print "✅ brew installation successful!"
-        return 0
-    else
-        $print "❌ brew installation failed. exiting..."
-        exit 1
-    fi
-}
-install_homebrew
+# Install Language and tooling
+bash './scripts/language_install.sh'
+install_exit_code=$?
+if [[ $install_exit_code -eq 0 ]]; then
+    $print "ℹ️  language_install complete."
+else
+    $print "${warn_highlight}"
+    $print "⚠️ language_install failed! halting script..."
+    $print "${reset_format}" 
+    exit 1
+fi
+exit 0
 
 # Language and Tooling
 $print "\n${highlight}"
@@ -193,7 +142,6 @@ check_and_install_app "build-essential" "$os_installer"
 check_and_install_app "gcc" "$os_installer"
 check_and_install_app "clang" "$os_installer"
 check_and_install_app "valgrind" "$os_installer"
-check_and_install_app "zsh" "brew"
 
 # Productivity
 $print "\n${highlight}"
