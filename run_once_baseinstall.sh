@@ -1,6 +1,8 @@
 #!/bin/bash
 #TODO ensure dotfiles are synced, but recursive chezmoi apply.. 
 echo "🐠 Running run once base install script..."
+#temp supppress running
+exit 0
 
 # formatting stuffs
 highlight="\e[34m" # red
