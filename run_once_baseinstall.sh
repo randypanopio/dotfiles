@@ -1,5 +1,5 @@
 #!/bin/bash
-#TODO ensure dotfiles are synced, but recursive chezmoi apply.. 
+# TODO should probably rename me
 echo "🐠 Running run once base install script..."
 #temp supppress running
 exit 0
@@ -89,7 +89,7 @@ function set_os_vars(){
         exit 1
     fi    
 }
-# set_os_vars
+set_os_vars
 
 # # Install Homebrew
 # bash './scripts/brew_install.sh'
