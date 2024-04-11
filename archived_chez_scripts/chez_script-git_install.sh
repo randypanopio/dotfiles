@@ -1,6 +1,6 @@
 #!/bin/bash
 echo "\n"
-echo "🐠 executing git_install..."
+echo "🐠 executing asdasd git_install..."
 
 # formatting stuffs
 highlight="\e[34m" # red

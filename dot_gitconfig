@@ -4,6 +4,8 @@
 
 [alias]
   squash-all = "!f(){ git reset $(git commit-tree HEAD^{tree} \"$@\");};f"
+  ac = "!git add -A && git commit -am \"$*\""
+
 
 [core]
   excludesfile = ~/.gitignore

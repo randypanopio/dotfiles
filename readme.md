@@ -13,3 +13,9 @@ sh -c "$(curl -fsLS get.chezmoi.io)" -- init --apply $GITHUB_USERNAME
 
 
 
+TODO:
+// figure out auto setup of port forwarding
+// setting up ssh managers
+// setting up secrets, maybe
+// complete language/tooling installations
+// audit platform specifics
