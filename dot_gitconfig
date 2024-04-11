@@ -1,10 +1,11 @@
 [user]
-	email = randypanopio@gmail.com
-	name = Randy Panopio
+  email = randypanopio@gmail.com
+  name = Randy Panopio
 
 [alias]
   squash-all = "!f(){ git reset $(git commit-tree HEAD^{tree} \"$@\");};f"
-  ac = "!git add -A && git commit -am \"$*\""
+  ac = "!git add -A && git commit -m \"$*\""
+  chs = !git checkout $1 && git status
 
 
 [core]
