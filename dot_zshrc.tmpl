@@ -1,15 +1,17 @@
 # autocomplete?
 autoload -Uz compinit
 compinit
-{{- if eq .chezmoi.os "darwin" }} 
-# macOS exported paths, TODO audit these
-export PATH="/opt/homebrew/bin:$PATH" 
-# export PATH="/Library/Frameworks/Python.framework/Versions/3.11/bin:$PATH"
+# ==== normal exports ==== 
 export PATH="/usr/local/bin:$PATH"
 export PATH="/usr/bin:$PATH"
 export PATH="/bin:$PATH"
 export PATH="/usr/sbin:$PATH"
 export PATH="/sbin:$PATH"
+# ==== normal exports ==== 
+
+{{- if eq .chezmoi.os "darwin" }} 
+# macOS exported paths
+export PATH="/opt/homebrew/bin:$PATH"
 
 export PATH="/System/Cryptexes/App/usr/bin:$PATH"
 
@@ -19,12 +21,29 @@ export PATH="/opt/homebrew/bin:$PATH"
 export PATH="/opt/homebrew/bin$PATH"
 
 {{- if or (eq .chezmoi.arch "amd64") (eq .chezmoi.arch "x86_64") }}
-# intel/amd 64 exports
+# intel/amd 64 macOS specific exports
 {{ end -}}
 {{- if eq .chezmoi.arch "arm64" }} 
-# arm64 specific exports
+# arm64 macOS specific exports
+{{ end -}}
+
+{{- else if eq .chezmoi.os "linux" }}
+
+{{- if eq .chezmoi.osRelease.name "Ubuntu" }}
+{{- if or (eq .chezmoi.arch "amd64") (eq .chezmoi.arch "x86_64") }}
+
+# intel/amd 64 ubuntu exports
+# export brew on Ubuntu (Linux WSL in this case)
+eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+
+{{- else if eq .chezmoi.arch "arm64" }}
+
+# arm ubuntu exports
+
 {{ end -}}
 {{ end -}}
+{{ end }}
+
 
 # zsh exports
 export EDITOR=code
@@ -40,18 +59,3 @@ source $ZSH/oh-my-zsh.sh
 # Aliases
 alias py='python3'
 
-{{- if eq .chezmoi.os "linux" }}
-{{- if eq .chezmoi.os.name "Ubuntu" }}
-{{- if or (eq .chezmoi.arch "amd64") (eq .chezmoi.arch "x86_64") }}
-
-# intel/amd 64 exports
-# export brew on Ubuntu (Linux WSL in this case), maybe TODO filter by distro but too lazy
-eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-
-{{- else if eq .chezmoi.arch "arm64" }}
-
-# arm exports
-
-{{ end -}}
-{{ end -}}
-{{ end -}}

@@ -16,8 +16,7 @@ function install_zsh(){
     $print "🐠 Installing and setting default shell to Zsh"
     $print "${reset_format}"
 
-    if ! command -v zsh &> /dev/null; then
-    # if ! which zsh >/dev/null 2>&1; then
+    if command -v zsh &> /dev/null; then
         $print "⚓ zsh installed! found at: $(which zsh) "
     else
         # Install platform specific

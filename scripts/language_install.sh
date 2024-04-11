@@ -17,7 +17,7 @@ function install_python3(){
     $print "${reset_format}"
 
     # validate if installed and already in path
-    if ! command -v python3 &> /dev/null; then
+    if command -v python3 &> /dev/null; then
         $print "\n${highlight}"
         $print "🚧 Python3 was not found in PATH. It might exist eleswhere, but installing and setting to path anyways"
         $print "${reset_format}"
@@ -39,7 +39,7 @@ function install_python3(){
     fi
 
     # Do another installation check
-    if which python3 >/dev/null 2>&1; then
+    if command -v python3 &> /dev/null; then
         $print "✅ Python3 installation successful!"
     else
         $print "${warn_highlight}"

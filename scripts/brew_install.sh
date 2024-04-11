@@ -17,7 +17,7 @@ function install_homebrew() {
 
     brew_required="true"
 
-    if which brew >/dev/null 2>&1; then
+    if command -v brew &> /dev/null; then
         $print "⚓🍺 Homebrew installed! found at: $(which brew) "
     else
         # Install platform specific
@@ -39,7 +39,7 @@ function install_homebrew() {
     
     if [[ $brew_required == "true" ]]; then
         # Check installation status
-        if which brew >/dev/null 2>&1; then
+        if command -v brew &> /dev/null; then
             $print "✅ brew installation successful!"
         else
             $print "❌ brew installation failed. exiting..."

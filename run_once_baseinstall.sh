@@ -1,8 +1,6 @@
 #!/bin/bash
 # TODO should probably rename me
 echo "🐠 Running run once base install script..."
-#temp supppress running
-exit 0
 
 # formatting stuffs
 highlight="\e[34m" # red
@@ -91,17 +89,29 @@ function set_os_vars(){
 }
 set_os_vars
 
-# # Install Homebrew
-# bash './scripts/brew_install.sh'
-# install_exit_code=$?
-# if [[ $install_exit_code -eq 0 ]]; then
-#     $print "ℹ️  brew_install complete."
-# else
-#     $print "${warn_highlight}"
-#     $print "⚠️ brew_install failed! halting script..."
-#     $print "${reset_format}" 
-#     exit 1
-# fi
+# Install git
+bash './scripts/git_install.sh'
+install_exit_code=$?
+if [[ $install_exit_code -eq 0 ]]; then
+    $print "ℹ️  git_install complete."
+else
+    $print "${warn_highlight}"
+    $print "⚠️ git_install failed! halting script..."
+    $print "${reset_format}" 
+    exit 1
+fi
+
+# Install Homebrew
+bash './scripts/brew_install.sh'
+install_exit_code=$?
+if [[ $install_exit_code -eq 0 ]]; then
+    $print "ℹ️  brew_install complete."
+else
+    $print "${warn_highlight}"
+    $print "⚠️ brew_install failed! halting script..."
+    $print "${reset_format}" 
+    exit 1
+fi
 
 # Install zsh
 bash './scripts/zsh_install.sh'
