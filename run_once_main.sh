@@ -10,26 +10,6 @@ reset_format="\e[0m"
 print="echo -e"
 # highlight text: ${highlight} <text> ${reset_format} 
 
-function check_and_install_app() {
-    local application=${1-}
-    local installer=${2-$os_installer}
-    local elevated=${3-""} # pass su/sudo if it should be elevated access
-    local update=${4-""} # for upgrading 
-
-    $print "formatted command: [$elevated $installer install $condition $application]"
-    if ! which "$application" > /dev/null 2>&1; then
-        $print "🚧 ${warn_highlight} ${application} ${reset_format} not found. It might exist eleswhere, but was not found in system path. Installing globally using $installer..."
-
-        # run command in a subshell separate from the script's scope, maybe security? idunnolol
-        $print "command: $elevated $installer install $application"
-        ($elevated $installer install $application)
-    fi
-    if [[ $update == "update" || $update == "yes" || $update == "upgrade" ]]; then
-        $print "⬆️  Updating ${highlight} ${application} ${reset_format}"
-        ($elevated $installer upgrade $application)
-    fi
-}
-
 declare -a failed_executions
 function terminate_script(){
     exit_code=${1}
@@ -53,12 +33,12 @@ function terminate_script(){
         $print "🐠 Run once base install script complete. Yipee! Restart/Logout to finish setup."
         $print "${reset_format}"
     fi
-    exit $exit_code
+    exit "$exit_code"
 }
 
 function is_app_available() {
     local application=${1-}
-    if command -v $application &> /dev/null; then
+    if command -v "$application" &> /dev/null; then
         return 0
     else
         return 1
@@ -97,13 +77,13 @@ function set_os_vars(){
             $print "Detected Ubuntu system."
             os_installer="DEBIAN_FRONTEND=noninteractive apt-get -y"
             $print "OS installer set to: ${os_installer} updating installer...\n"
-            $privileged_access $os_installer update
+            $privileged_access "$os_installer" update
         elif [[ $cat_os_release =~ "ID=debian" ]]; then
             os_distro="ubuntu"
             $print "Detected Debian system."
             os_installer="DEBIAN_FRONTEND=noninteractive apt-get -y"
             $print "OS installer set to: ${os_installer} updating installer...\n"
-            $privileged_access $os_installer update
+            $privileged_access "$os_installer" update
         else
             $print "${warn_highlight}"
             $print "⚠️ Unsupported OS: ${os_name}, or distro: ${os_distro}, halting script..."
@@ -179,8 +159,8 @@ function install_homebrew() {
             $print "✅ brew installation successful!"
         else
             local failure="❌ brew installation failed!"
-            $print $failure
-            failed_executions+=$failure
+            $print "$failure"
+            failed_executions+=("$failure")
             terminate_script 1
         fi
 
@@ -221,13 +201,13 @@ function install_zsh(){
         $print "✅ zsh installation successful!"
     else
         local failure="❌ zsh installation failed"
-        $print $failure
-        failed_executions+=$failure
+        $print "$failure"
+        failed_executions+=("$failure")
         terminate_script 1        
     fi
 
     # Check if zsh is the current default shell
-    $print "current shell: $(echo $SHELL), zsh shell: $(which zsh)"
+    $print "current shell: $SHELL, zsh shell: $(which zsh)"
     if [[ ${SHELL##*/} == "zsh" ]]; then
         $print "⚓ zsh is already your default shell."
     else
@@ -243,7 +223,7 @@ function install_zsh(){
         #     $print "${reset_format}"
         # fi
         $print "${highlight}"
-        $print "⚠️ Skipping validation of setting $new_shell as the default shell! May need to manually change default shell to $new_shell."
+        $print "⚠️ Skipping validation of setting zsh as the default shell! May need to manually change default shell to zsh."
         $print "${reset_format}"
     fi
 
@@ -260,12 +240,12 @@ install_ohmyzsh(){
     if [[ $(is_app_available "zsh") -eq 1 ]]; then
         local failure="⚠️  Zsh not found! Unable to install oh-my-zsh."
         $print "$failure continuing with script"
-        failed_executions+=$failure
+        failed_executions+=("$failure")
         return 1
     fi
 
     zsh_url="https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh"
-    oh_my_zsh_installer="sh -c "$(curl -fsSL $zsh_url)"" # taken from https://ohmyz.sh/#install seems platform agnostic
+    oh_my_zsh_installer="sh -c $(curl -fsSL $zsh_url)" # taken from https://ohmyz.sh/#install seems platform agnostic
     # Check if Oh My Zsh is already installed
     if [ -d "$HOME/.oh-my-zsh" ]; then
         $print "⚓ ${highlight} Oh My Zsh ${reset_format} already installed."
@@ -279,7 +259,7 @@ install_ohmyzsh(){
         else
             local failure="❌ Oh My Zsh installation failed."
             $print "$failure Proceeding with script, may need to manually install"
-            failed_executions+=$failure
+            failed_executions+=("$failure")
             return 1
         fi
     fi
