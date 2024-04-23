@@ -94,8 +94,7 @@ function set_os_vars(){
     elif [[ $os_name == "Darwin" ]]; then
         os_installer="brew"
         $print "Detected macOS system."
-        $print "OS installer set to: ${os_installer} updating installer...\n"
-        $privileged_access $os_installer update
+        $print "OS installer set to: ${os_installer}\n"
     else
         $print "${warn_highlight}"
         $print "⚠️ Unsupported OS: ${os_name} halting script..."
@@ -227,11 +226,12 @@ function install_zsh(){
         $print "${reset_format}"
     fi
 
+    # update zsh
 }
 install_zsh
 
 # oh-my-zsh - a zsh extension, for my themes and plugins (such as zsh-autocomplete)
-install_ohmyzsh(){
+function install_ohmyzsh(){
     $print "${highlight}"
     $print "🐠 Installing oh-my-zsh"
     $print "${reset_format}"
@@ -258,7 +258,7 @@ install_ohmyzsh(){
             $print "✅ Oh My Zsh installation successful!"
         else
             local failure="❌ Oh My Zsh installation failed."
-            $print "$failure Proceeding with script, may need to manually install"
+            $print "$failure Proceeding with script, may need to manually install oh-my-zsh"
             failed_executions+=("$failure")
             return 1
         fi
@@ -268,9 +268,44 @@ install_ohmyzsh(){
     $print "${highlight}"
     $print "⬆️  Updating oh-my-zsh"
     $print "${reset_format}"
-        
+
+    # attempt to run  omz update
+    if [[ $(is_app_available "omz") -eq 0 ]]; then
+        $print "⚓ updating with omz"
+    else
+        # omz not found, weird
+        local failure="⚠️  omz not found!" 
+        $print "$failure Attempting to update directly from $ZSH/tools/upgrade.sh script"
+        failed_executions+=("$failure")
+        ("$ZSH/tools/upgrade.sh")
+    fi
 }
 install_ohmyzsh
+
+function install_tool(){
+    local application=${1-}
+    if [[ $(is_app_available "$application") -eq 0 ]]; then
+        $print "⚓ $application installed! found at: $(which "$application") "
+    else
+        $print "🚧 installing $application"
+
+        # try to install with brew on OSX
+
+        # use default package 
+    fi
+
+    # Update using the intial installation method
+}
+
+# Install Language and tooling
+install_tool "python3"
+# Language and Tooling
+$print "${highlight}"
+$print "🐠 Installing Languages and Tooling"
+$print "${reset_format}"
+install_tool "python3"
+
+
 
 # Install Language and tooling
 # bash './chez_scripts-language_install.sh'
