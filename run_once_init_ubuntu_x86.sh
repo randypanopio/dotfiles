@@ -80,6 +80,10 @@ function is_app_available() {
 function install_application() {
     local application=${1-}
     local installer_arg=${2-$os_installer}
+    local aliases=${3}
+
+    # check if aliases is passed, use that for installation validation
+    # TODO add alias checking as well
 
     # check if it is already installed
     if [[ $(is_app_available "$application") -eq 0 ]]; then
@@ -120,9 +124,8 @@ function install_application() {
     else
         ($privileged_access DEBIAN_FRONTEND=noninteractive apt-get -y upgrade $application)
     fi
-    $print "⚓${highlight} $application install and upgrade complete.${reset_format}"
+    $print "⚓${highlight} $application install and upgrade complete.${reset_format}\n"
 }
-# ========== utilities ========== #
 
 # ========== installs ========== #
 # setup privilege access
@@ -155,7 +158,6 @@ function set_installer_access(){
     ($privileged_access DEBIAN_FRONTEND=noninteractive apt-get -y update)
     ($privileged_access DEBIAN_FRONTEND=noninteractive apt-get -y upgrade)    
 }
-set_installer_access
 
 # Install Homebrew, set as the alternate installer
 installer="brew"
@@ -190,22 +192,73 @@ function install_homebrew() {
     ($installer update)
     ($installer upgrade)
 }
-install_homebrew
 
-# ========== non-critical ========== #
-# Language and tooling
-install_application "git" "apt-get"
-install_application "python3" "apt-get"
-# install_application "build-essential" "apt-get" # note this is special install
-install_application "gcc" "apt-get"
-install_application "clang" "apt-get"
-install_application "valgrind" "apt-get"
+# install zsh and set as default shell
+#TODO 
 
-# Productivity
-install_application "tmux" "apt-get"
-install_application "neovim" "apt-get" 
+# install oh-my-zsh
+#TODO
 
-# TODO add a third param (that takes in an array of strings)
-# to check for proper installation rather than the initial package name. EG neovim->nvim and build-essential
+config_file="$HOME/.rpanopio_config.yaml"
+# Install remaining applications
+# Maybe TODO refactor to generic parser 
+function install_config_applications () {
+    local file="$1"
+    $print "${highlight}"
+    $print "🐠 Parsing: [$config_file], for additional application installs"
+    $print "${reset_format}"
+
+    $print "=== catting ==="
+    cat "$config_file"
+    $print "=== catting complete ==="
+    # Initialize variables
+    local in_program=false
+    local package=""
+    local installer=""
+    local aliases=""
+
+    # Read each line of the input file
+    while IFS= read -r line; do
+        # Skip lines that are comments or not within the program section
+        if [[ $line =~ ^\s*# || $line =~ ^\s*[^programs]*: ]]; then
+            continue
+        fi
+
+        # Check if we are in the program section
+        if [[ $line == "programs:" ]]; then
+            in_program=true
+            continue
+        fi
+
+        # Check if we are inside the program section
+        if [[ $in_program == true && $line == *"package"* ]]; then
+            package=$(echo "$line" | awk -F": " '{print $2}')
+        fi
+        if [[ $in_program == true && $line == *"installer"* ]]; then
+            installer=$(echo "$line" | awk -F": " '{print $2}')
+        fi
+        if [[ $in_program == true && $line == *"aliases"* ]]; then
+            aliases=$(echo "$line" | awk -F": " '{print $2}')
+            aliases=$(echo "$aliases" | tr -d '[],')
+            # aliases become a singe string, the following function will split it
+            # pass parsed program to install
+            install_application "$package" "$installer" "$aliases"
+        fi
+    done < "$file"
+}
+
 
 # zsh-autosuggestions
+
+# wrap up and close 
+
+
+# execute functions
+set_installer_access # prompts sudo access and validates default package manager
+# install_homebrew
+# install_zsh
+# install_ohmyzsh
+install_config_applications "$config_file"
+
+
+terminate_script 0
