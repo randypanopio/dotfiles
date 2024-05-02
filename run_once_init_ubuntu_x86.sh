@@ -84,9 +84,13 @@ function install_application() {
 
     # check if aliases is passed, use that for installation validation
     # TODO add alias checking as well
+    # for element in "${aliases[@]}"
+    # do
+    #     echo "alias: $element"
+    # done
 
     # check if it is already installed
-    if [[ $(is_app_available "$application") -eq 0 ]]; then
+    if is_app_available "$application"; then
         $print "${highlight}"
         $print "⚓ $application installed! found at: $(which "$application")"
         $print "${reset_format}"
@@ -97,20 +101,25 @@ function install_application() {
 
         # format the correct install command and update command respectively (and if elevated)
         local command=""
-        if [[ $installer_arg == "brew" ]]; then 
+        if [[ $installer_arg == "$installer" ]]; then 
             command="brew install --quiet $application"
-        else
+        elif [[ $installer_arg == "$os_installer" ]]; then
             # default to os_installer 
-            command="$privileged_access DEBIAN_FRONTEND=noninteractive apt-get -y install $application"
+            command="$privileged_access DEBIAN_FRONTEND=noninteractive apt-get -y install $application"            
+        else
+            local failure="❌ tried to install $application with $installer_arg, which is supported installer!"
+            $print "$failure"
+            failed_executions+=("$failure")
+            return 1
         fi
         $print "⚓ formatted command: [$command]"
         ($command)
 
         # validate if application installed succesfully
-        if [[ $(is_app_available "$application") -eq 0 ]]; then
+        if is_app_available "$application"; then
             $print "✅ $application installation successful!"
         else
-            local failure="❌ $application installation failed!"
+            local failure="❌ $application installation failed! Unable to validate post installation"
             $print "$failure"
             failed_executions+=("$failure")
             return 1
@@ -125,6 +134,8 @@ function install_application() {
         ($privileged_access DEBIAN_FRONTEND=noninteractive apt-get -y upgrade $application)
     fi
     $print "⚓${highlight} $application install and upgrade complete.${reset_format}\n"
+
+    # TODO do i update alias or the package? alias probably?
 }
 
 # ========== installs ========== #
@@ -145,7 +156,7 @@ function set_installer_access(){
     # set apt-get and check access
     $print "⚓  installer set to: ${os_installer} updating installer...\n"
 
-    if [[ $(is_app_available $os_installer) -eq 0 ]]; then
+    if is_app_available "$os_installer"; then
         $print "⚓ $os_installer found at: $(which $os_installer) "
     else
         local failure="❌ $os_installer was not found! This script may have been incorrectly executed."
@@ -166,7 +177,7 @@ function install_homebrew() {
     $print "🐠 Installing Homebrew and adding to Shell Paths"
     $print "${reset_format}"
 
-    if [[ $(is_app_available brew) -eq 0 ]]; then
+    if is_app_available "brew"; then
         $print "⚓🍺 Homebrew installed! found at: $(which brew) "
     else
         $print "🚧 Installing 🍺 Homebrew."
@@ -176,7 +187,7 @@ function install_homebrew() {
     fi
 
     # Check installation status
-    if [[ $(is_app_available "brew") -eq 0 ]]; then
+    if is_app_available "brew"; then
         $print "✅ brew installation successful!"
     else
         local failure="❌ brew installation failed!"
@@ -208,41 +219,57 @@ function install_config_applications () {
     $print "🐠 Parsing: [$config_file], for additional application installs"
     $print "${reset_format}"
 
-    $print "=== catting ==="
-    cat "$config_file"
-    $print "=== catting complete ==="
-    # Initialize variables
+    # parse config file manually
     local in_program=false
     local package=""
     local installer=""
-    local aliases=""
-
-    # Read each line of the input file
     while IFS= read -r line; do
-        # Skip lines that are comments or not within the program section
+        # Skip lines that are comments or not within the "programs" section
         if [[ $line =~ ^\s*# || $line =~ ^\s*[^programs]*: ]]; then
             continue
         fi
 
-        # Check if we are in the program section
+        # Check if we are in the programs section
         if [[ $line == "programs:" ]]; then
             in_program=true
             continue
         fi
 
-        # Check if we are inside the program section
+        # NOTE this assumes that the order of these arguements are in this specific order
+        # and that these exist in the yaml file, probably fine since that should be 
+        # documented in the yaml file itself.
+
         if [[ $in_program == true && $line == *"package"* ]]; then
+            # get package value 
             package=$(echo "$line" | awk -F": " '{print $2}')
         fi
         if [[ $in_program == true && $line == *"installer"* ]]; then
+            # get installer value 
             installer=$(echo "$line" | awk -F": " '{print $2}')
         fi
         if [[ $in_program == true && $line == *"aliases"* ]]; then
-            aliases=$(echo "$line" | awk -F": " '{print $2}')
-            aliases=$(echo "$aliases" | tr -d '[],')
-            # aliases become a singe string, the following function will split it
-            # pass parsed program to install
-            install_application "$package" "$installer" "$aliases"
+            # Get aliases value
+            alias_value=$(echo "$line" | awk -F": " '{print $2}')
+            # trim brackets
+            alias_value=$(echo "$alias_value" | tr -d '[]') 
+
+            # Check if the alias value is empty or whitespace-only
+            if [[ -z "${alias_value// }" ]]; then
+                # call without passing 3rd array arg
+                install_application "$package" "$installer"
+            else
+                # Split using comma as delimiter, allowing optional spaces around the comma
+                IFS=',' read -r -a trimmed_aliases <<< "${alias_value//,/ ,}"
+
+                # Remove all whitespace from each element using parameter expansion
+                for i in "${!trimmed_aliases[@]}"; do
+                    # Remove all whitespace
+                    trimmed_aliases[$i]="${trimmed_aliases[$i]//[[:space:]]/}"
+                done
+                
+                # pass application install arg to install func
+                install_application "$package" "$installer" "${trimmed_aliases[@]}"
+            fi
         fi
     done < "$file"
 }
@@ -259,6 +286,7 @@ set_installer_access # prompts sudo access and validates default package manager
 # install_zsh
 # install_ohmyzsh
 install_config_applications "$config_file"
-
+echo "cat config file"
+cat "$config_file"
 
 terminate_script 0
