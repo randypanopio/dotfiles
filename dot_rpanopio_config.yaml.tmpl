@@ -1,22 +1,55 @@
-# template
+# Custom personal config files used by my installation scripts
 
 # List of programs to install
 # 
 # installer: 
 # aliases: optional aliases to crosscheck for install. EG neovim -> nvim 
 programs:
+  # Core Tools
   - package: git
     installer: apt-get
     aliases: [] 
   - package: neovim
     installer: apt-get
-    aliases: [nvim] 
-  # - package: loss
-  #   installer: apt-get
-  #   aliases: [l1,l2, l3] 
+    aliases: [nvim]
+  - package: build-essential
+    installer: apt-get
+    aliases: [gcc, make, g++]
+  - package: clang
+    installer: apt-get
+    aliases: []
+  - package: valgrind
+    installer: apt-get
+    aliases: []    
 
+  # Languages
+  - package: python3
+    installer: apt-get
+    aliases: []
+  # JS 
+  - package: nodejs
+    installer: apt
+    aliases: []
+  - package: npm
+    installer: apt
+    aliases: []
+  # TODO dotnet SDK and runtimes
+  # TODO java SDK and runtimes
 
-
+  # Productivity Tools
+  - package: tmux
+    installer: apt-get
+    aliases: []
+  # Do not install docker on WSL, it should instead use the windows native version, and pipe it to WSL
+  # Do not install VSCode on WSL, it should instead use windows native version, and pipe it to WSL
+  # open source vpn client, compatible with fortinet vpns
+  - package: openfortivpn
+    installer: apt-get
+    aliases: []
+  # dotfile manager
+  - package: chezmoi
+    installer: brew
+    aliases: []
 
 others:
   - elements: something

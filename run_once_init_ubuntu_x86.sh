@@ -34,7 +34,7 @@ function get_os_info() {
 }
 get_os_info
 
-# ========== utilities ========== #
+# ========== fomratting ========== #
 # formatting stuffs
 highlight="\e[34m" # red
 warn_highlight="\e[31m" # blue
@@ -42,6 +42,10 @@ reset_format="\e[0m"
 print="echo -e"
 # highlight text: ${highlight} <text> ${reset_format} 
 
+# ========== global variables ========== #
+privileged_access="sudo"
+
+# ========== utilities ========== #
 declare -a failed_executions
 function terminate_script(){
     exit_code=${1}
@@ -79,35 +83,58 @@ function is_app_available() {
 
 function install_application() {
     local application=${1-}
-    local installer_arg=${2-$os_installer}
+    local installer_arg=${2-}
     local aliases=${3}
 
-    # check if aliases is passed, use that for installation validation
-    # TODO add alias checking as well
-    # for element in "${aliases[@]}"
-    # do
-    #     echo "alias: $element"
-    # done
+    echo "FISH: args1: $application args2: $installer_arg, args3: $aliases"
 
+    local fully_installed=true
+    local has_aliases=false
     # check if it is already installed
-    if is_app_available "$application"; then
-        $print "${highlight}"
-        $print "⚓ $application installed! found at: $(which "$application")"
-        $print "${reset_format}"
+    # shellcheck disable=SC2199
+    if [[ -z "${aliases[@]}" ]]; then
+        # directly check the passed application name if it is available
+        if is_app_available "$application"; then
+            $print "${highlight}"
+            $print "⚓ $application installed! found at: $(which "$application")"
+            $print "${reset_format}"
+            fully_installed=true
+        else
+            fully_installed=false
+        fi
+        has_aliases=false
     else
+        has_aliases=true
+        # check if aliases are ALL available
+        for alias in "${aliases[@]}"
+        do
+            # immediately break if any alias is missing, so install package
+            if ! is_app_available "$alias"; then
+                fully_installed=false
+                break
+            fi
+        done
+        $print "${highlight}"
+        $print "⚓ $application (and it's aliases) are installed!"
+        $print "${reset_format}"
+    fi
+
+    # Install application if any are found missing
+    if [[ $fully_installed == false ]]; then
         $print "${highlight}"
         $print "🐠 Installing $application"
         $print "${reset_format}"
 
         # format the correct install command and update command respectively (and if elevated)
         local command=""
-        if [[ $installer_arg == "$installer" ]]; then 
+        if [[ $installer_arg == "brew" ]]; then
             command="brew install --quiet $application"
-        elif [[ $installer_arg == "$os_installer" ]]; then
-            # default to os_installer 
-            command="$privileged_access DEBIAN_FRONTEND=noninteractive apt-get -y install $application"            
+        elif [[ $installer_arg == "apt-get" ]]; then
+            command="$privileged_access DEBIAN_FRONTEND=noninteractive apt-get -y install $application"
+        elif [[ $installer_arg == "apt" ]]; then
+            command="$privileged_access DEBIAN_FRONTEND=noninteractive apt -y install $application"                        
         else
-            local failure="❌ tried to install $application with $installer_arg, which is supported installer!"
+            local failure="❌ tried to install $application with $installer_arg, which is not a  supported installer!"
             $print "$failure"
             failed_executions+=("$failure")
             return 1
@@ -115,33 +142,54 @@ function install_application() {
         $print "⚓ formatted command: [$command]"
         ($command)
 
-        # validate if application installed succesfully
-        if is_app_available "$application"; then
-            $print "✅ $application installation successful!"
+        # validate if installation was succesful
+        if [[ $has_aliases == true ]]; then
+            # check if aliases are ALL available post installation
+            for alias in "${aliases[@]}"
+            do
+                if ! is_app_available "$alias"; then 
+                    local failure="❌ $application installation failed! Unable to validate alias: $alias as installed"
+                    $print "$failure"
+                    failed_executions+=("$failure")
+                    return 1
+                fi
+            done
         else
-            local failure="❌ $application installation failed! Unable to validate post installation"
-            $print "$failure"
-            failed_executions+=("$failure")
-            return 1
+            if is_app_available "$application"; then
+                $print "✅ $application installation successful!"
+            else
+                local failure="❌ $application installation failed! Unable to validate post installation"
+                $print "$failure"
+                failed_executions+=("$failure")
+                return 1
+            fi
         fi
-    fi    
-
-    # update application
-    $print "⬆️  Updating ${highlight}${application}${reset_format}"
-    if [[ $installer_arg == "brew" ]]; then 
-        (brew upgrade --quiet $application)
-    else
-        ($privileged_access DEBIAN_FRONTEND=noninteractive apt-get -y upgrade $application)
     fi
-    $print "⚓${highlight} $application install and upgrade complete.${reset_format}\n"
 
-    # TODO do i update alias or the package? alias probably?
+    # Update application(s)
+    $print "⬆️  Updating ${highlight}${application}${reset_format}\n"
+    if [[ $installer_arg == "brew" ]]; then
+        # shellcheck disable=SC2086
+        (brew upgrade --quiet $application)
+    elif [[ $installer_arg == "apt-get" ]]; then
+        # shellcheck disable=SC2086
+        ($privileged_access DEBIAN_FRONTEND=noninteractive apt-get -y upgrade $application)
+    elif [[ $installer_arg == "apt" ]]; then
+        # shellcheck disable=SC2086
+        ($privileged_access DEBIAN_FRONTEND=noninteractive apt -y upgrade $application)                      
+    else
+        local failure="❌ tried to update $application with $installer_arg, which is not a  supported installer!"
+        $print "$failure"
+        failed_executions+=("$failure")
+        return 1
+    fi
+
+    $print "${highlight}"
+    $print "⚓ $application install and upgrade complete."
+    $print "${reset_format}=========="
 }
 
 # ========== installs ========== #
-# setup privilege access
-privileged_access="sudo"
-os_installer="apt-get"
 # Requests sudo perms from the user, and updates package manager
 function set_installer_access(){
     privileged_access="sudo"
@@ -154,8 +202,7 @@ function set_installer_access(){
     $privileged_access echo "** granted ${privileged_access} privilege **"
 
     # set apt-get and check access
-    $print "⚓  installer set to: ${os_installer} updating installer...\n"
-
+    local os_installer="apt-get"
     if is_app_available "$os_installer"; then
         $print "⚓ $os_installer found at: $(which $os_installer) "
     else
@@ -167,11 +214,14 @@ function set_installer_access(){
 
     # update apt-get
     ($privileged_access DEBIAN_FRONTEND=noninteractive apt-get -y update)
-    ($privileged_access DEBIAN_FRONTEND=noninteractive apt-get -y upgrade)    
+    ($privileged_access DEBIAN_FRONTEND=noninteractive apt-get -y upgrade)
+    # update apt
+    ($privileged_access DEBIAN_FRONTEND=noninteractive apt -y update)
+    ($privileged_access DEBIAN_FRONTEND=noninteractive apt -y upgrade)
 }
 
 # Install Homebrew, set as the alternate installer
-installer="brew"
+
 function install_homebrew() {
     $print "${highlight}"
     $print "🐠 Installing Homebrew and adding to Shell Paths"
@@ -188,7 +238,7 @@ function install_homebrew() {
 
     # Check installation status
     if is_app_available "brew"; then
-        $print "✅ brew installation successful!"
+        $print "✅ brew installation successful and is now available for use!"
     else
         local failure="❌ brew installation failed!"
         $print "$failure"
@@ -200,8 +250,8 @@ function install_homebrew() {
     $print "${highlight}"
     $print "⬆️  Updating homebrew and its packages"
     $print "${reset_format}"
-    ($installer update)
-    ($installer upgrade)
+    (brew update)
+    (brew upgrade)
 }
 
 # install zsh and set as default shell
@@ -239,6 +289,7 @@ function install_config_applications () {
         # and that these exist in the yaml file, probably fine since that should be 
         # documented in the yaml file itself.
 
+        # WARNING TODO BUGFIX - this doesn't actually work, it will start parsing again so long as it matches the correct 3 stage format, which is probably fine, but it can cause issues when another object/config will have the same 3 stage format  
         if [[ $in_program == true && $line == *"package"* ]]; then
             # get package value 
             package=$(echo "$line" | awk -F": " '{print $2}')
@@ -282,11 +333,8 @@ function install_config_applications () {
 
 # execute functions
 set_installer_access # prompts sudo access and validates default package manager
-# install_homebrew
+install_homebrew
 # install_zsh
 # install_ohmyzsh
 install_config_applications "$config_file"
-echo "cat config file"
-cat "$config_file"
-
 terminate_script 0
