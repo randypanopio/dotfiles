@@ -40,8 +40,15 @@ programs:
   - package: tmux
     installer: apt-get
     aliases: []
+  - package: tree
+    installer: apt-get
+    aliases: []
   # Do not install docker on WSL, it should instead use the windows native version, and pipe it to WSL
-  # Do not install VSCode on WSL, it should instead use windows native version, and pipe it to WSL
+  # Do not install VSCode on WSL, it should instead use windows native version, and pipe it to WSL. 
+  # Only install with platforms with Homebrew 
+  # - package: visual-studio-code
+  #   installer: brew
+  #   aliases: [code]
   # open source vpn client, compatible with fortinet vpns
   - package: openfortivpn
     installer: apt-get
@@ -50,6 +57,7 @@ programs:
   - package: chezmoi
     installer: brew
     aliases: []
+
 
 others:
   - elements: something
