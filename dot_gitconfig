@@ -5,10 +5,7 @@
 [alias]
   squash-all = "!f(){ git reset $(git commit-tree HEAD^{tree} \"$@\");};f"
   chs = !git checkout $1 && git status
-  ac = '!f() { git add -A && git commit -m "$@" && return 0; }; f'
-
+  ac = !git add -A && git commit -am
 
 [core]
   excludesfile = ~/.gitignore
-
-
