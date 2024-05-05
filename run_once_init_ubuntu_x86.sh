@@ -8,8 +8,8 @@ function get_os_info() {
     if [[ "$os_name" == "Linux" ]]; then
     # Try using /etc/os-release (more reliable for distro info)
         if [[ -f /etc/os-release ]]; then
+            # shellcheck disable=SC1091
             source /etc/os-release  # Load os release variables
-            $print "ASDASDASD"
             linux_distro="$NAME"
         else
             # Fallback to lsb_release if available
@@ -87,8 +87,6 @@ function install_cli_application() {
     local application=${1-}
     local installer_arg=${2-}
     local aliases=${3}
-
-    echo "FISH: args1: $application args2: $installer_arg, args3: $aliases"
 
     local fully_installed=true
     local has_aliases=false
@@ -258,7 +256,6 @@ function set_installer_access(){
 }
 
 # Install Homebrew, set as the alternate installer
-
 function install_homebrew() {
     $print "${highlight}"
     $print "🐠 Installing Homebrew and adding to Shell Paths"
@@ -452,6 +449,7 @@ function install_config_applications () {
                 # Remove all whitespace from each element using parameter expansion
                 for i in "${!trimmed_aliases[@]}"; do
                     # Remove all whitespace
+                    # shellcheck disable=SC2004
                     trimmed_aliases[$i]="${trimmed_aliases[$i]//[[:space:]]/}"
                 done
                 
