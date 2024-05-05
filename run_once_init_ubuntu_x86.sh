@@ -34,7 +34,7 @@ function get_os_info() {
 }
 get_os_info
 
-# ========== fomratting ========== #
+# ========== formatting ========== #
 # formatting stuffs
 highlight="\e[34m" # red
 warn_highlight="\e[31m" # blue
@@ -44,6 +44,7 @@ print="echo -e"
 
 # ========== global variables ========== #
 privileged_access="sudo"
+config_file="$HOME/.rpanopio_config.yaml"
 
 # ========== utilities ========== #
 declare -a failed_executions
@@ -81,7 +82,8 @@ function is_app_available() {
     fi
 }
 
-function install_application() {
+# cli applications (Aka contains keyword we can check)
+function install_cli_application() {
     local application=${1-}
     local installer_arg=${2-}
     local aliases=${3}
@@ -122,7 +124,7 @@ function install_application() {
     # Install application if any are found missing
     if [[ $fully_installed == false ]]; then
         $print "${highlight}"
-        $print "🐠 Installing $application"
+        $print "🚧 Installing $application"
         $print "${reset_format}"
 
         # format the correct install command and update command respectively (and if elevated)
@@ -189,6 +191,38 @@ function install_application() {
     $print "${reset_format}=========="
 }
 
+# non cli apps (contains no installation validation)
+function install_application() {
+    local application=${1-}
+    local installer_arg=${2-}
+
+    $print "${highlight}"
+    $print "🚧 Installing $application"
+    $print "${reset_format}"
+
+    # Install application directly (and it should update too)
+    local command=""
+    if [[ $installer_arg == "brew" ]]; then
+        command="brew install --quiet $application"
+    elif [[ $installer_arg == "apt-get" ]]; then
+        command="$privileged_access DEBIAN_FRONTEND=noninteractive apt-get -y install $application"
+    elif [[ $installer_arg == "apt" ]]; then
+        command="$privileged_access DEBIAN_FRONTEND=noninteractive apt -y install $application"                        
+    else
+        local failure="❌ tried to install $application with $installer_arg, which is not a  supported installer!"
+        $print "$failure"
+        failed_executions+=("$failure")
+        return 1
+    fi
+    $print "⚓ formatted command: [$command]"
+    ($command)
+
+    $print "${highlight}"
+    $print "⚓ $application install application complete."
+    $print "${reset_format}=========="
+}
+
+
 # ========== installs ========== #
 # Requests sudo perms from the user, and updates package manager
 function set_installer_access(){
@@ -218,6 +252,9 @@ function set_installer_access(){
     # update apt
     ($privileged_access DEBIAN_FRONTEND=noninteractive apt -y update)
     ($privileged_access DEBIAN_FRONTEND=noninteractive apt -y upgrade)
+    $print "${highlight}"
+    $print "⚓ set_installer_access complete."
+    $print "${reset_format}=========="
 }
 
 # Install Homebrew, set as the alternate installer
@@ -252,17 +289,117 @@ function install_homebrew() {
     $print "${reset_format}"
     (brew update)
     (brew upgrade)
+
+    $print "${highlight}"
+    $print "⚓ install_homebrew complete."
+    $print "${reset_format}=========="    
 }
 
 # install zsh and set as default shell
-#TODO 
+function install_zsh(){
+    $print "${highlight}"
+    $print "🐠 Installing and setting default shell to Zsh"
+    $print "${reset_format}"
+
+    # check and install zsh
+    if is_app_available "zsh"; then
+        $print "⚓ zsh installed! found at: $(which zsh) "
+    else
+        $print "🚧 Installing zsh on Ubuntu..."
+        install_cli_application "zsh" "apt"
+    fi
+
+    # just install the zsh plugins, I don't even know why I bothered writing install checks
+    install_application "zsh-autosuggestions" "apt"
+    install_application "zsh-syntax-highlighting" "apt"
+
+    # Do another installation check
+    if is_app_available "zsh"; then
+        $print "✅ zsh installation successful!"
+    else
+        local failure="❌ zsh installation failed"
+        $print "$failure"
+        failed_executions+=("$failure")
+        terminate_script 1
+    fi
+
+    # Check if zsh is the current default shell
+    $print "⚓ Checking current shell: $SHELL, zsh shell: $(which zsh)"
+    if [[ ${SHELL##*/} == "zsh" ]]; then
+        $print "⚓ zsh is already your default shell."
+    else
+        $print "🚧 changing default shell to zsh."
+        $privileged_access chsh -s "$(which zsh)"
+        
+        # Verify the change, I dont think I can get this to easily work..
+        # if [[ "$current_shell" == $(which $new_shell) ]]; then
+        #     $print "✅ $new_shell has been set as your default shell successfully."
+        # else
+        #     $print "${warn_highlight}"
+        #     $print "⚠️  An error occurred while setting $new_shell as the default shell! May need to manually change default shell to $new_shell."
+        #     $print "${reset_format}"
+        # fi
+        $print "${highlight}"
+        $print "⚠️ Skipping validation of setting zsh as the default shell! May need to manually change default shell to zsh."
+        $print "${reset_format}"
+    fi
+
+    # update zsh
+    $print "${highlight}"
+    $print "⬆️  Updating zsh"
+    $print "${reset_format}"
+    ($privileged_access DEBIAN_FRONTEND=noninteractive apt -y upgrade zsh)
+
+    $print "${highlight}"
+    $print "⚓ install_zsh complete."
+    $print "${reset_format}=========="    
+}
 
 # install oh-my-zsh
-#TODO
+function install_ohmyzsh(){
+    $print "${highlight}"
+    $print "🐠 Installing oh-my-zsh"
+    $print "${reset_format}"
 
-config_file="$HOME/.rpanopio_config.yaml"
+    # check if zsh is avail    
+    if ! is_app_available "zsh"; then
+        local failure="⚠️  Zsh not found! Unable to install oh-my-zsh."
+        $print "$failure continuing with script"
+        failed_executions+=("$failure")
+        return 1
+    fi
+
+    zsh_url="https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh"
+    oh_my_zsh_installer="sh -c $(curl -fsSL $zsh_url)" # taken from https://ohmyz.sh/#install seems platform agnostic
+    # Check if Oh My Zsh is already installed
+    if [ -d "$HOME/.oh-my-zsh" ]; then
+        $print "⚓ ${highlight} Oh My Zsh ${reset_format} already installed."
+    else
+        # Proceed with installation
+        $print "Installing Oh My Zsh remote script: $zsh_url"
+        (eval "$oh_my_zsh_installer")  # Execute installation in a subshell
+        # Do another installation check
+        if is_app_available "omz"; then
+            $print "✅ oh-my-zsh installation successful!"
+        else
+            local failure="❌ oh-my-zsh installation failed"
+            $print "$failure"
+            failed_executions+=("$failure")
+            return 1        
+        fi
+    fi
+    # update
+    $print "${highlight}"
+    $print "⬆️  Updating oh-my-zsh"
+    $print "${reset_format}"
+    ("$ZSH/tools/upgrade.sh")
+
+    $print "${highlight}"
+    $print "⚓ install_ohmyzsh complete."
+    $print "${reset_format}=========="      
+}
+
 # Install remaining applications
-# Maybe TODO refactor to generic parser 
 function install_config_applications () {
     local file="$1"
     $print "${highlight}"
@@ -274,13 +411,13 @@ function install_config_applications () {
     local package=""
     local installer=""
     while IFS= read -r line; do
-        # Skip lines that are comments or not within the "programs" section
-        if [[ $line =~ ^\s*# || $line =~ ^\s*[^programs]*: ]]; then
+        # Skip lines that are comments or not within the "cli-programs" section
+        if [[ $line =~ ^\s*# || $line =~ ^\s*[^cli-programs]*: ]]; then
             continue
         fi
 
-        # Check if we are in the programs section
-        if [[ $line == "programs:" ]]; then
+        # Check if we are in the cli-programs section
+        if [[ $line == "cli-programs:" ]]; then
             in_program=true
             continue
         fi
@@ -319,23 +456,55 @@ function install_config_applications () {
                 done
                 
                 # pass application install arg to install func
-                install_application "$package" "$installer" "${trimmed_aliases[@]}"
+                install_cli_application "$package" "$installer" "${trimmed_aliases[@]}"
             fi
         fi
     done < "$file"
 }
 
-# MACO SCRIPT TODO add xcode
+# blindly install remote/custom install commands, should require at least brew and git
+function config_blind_installs () {
+    local file="$1"
+    $print "${highlight}"
+    $print "🐠 Parsing: [$config_file], for additional blind arbitrary installations. AKA custom external scripts."
+    $print "${reset_format}"
 
-# zsh-autosuggestions
+    # parse config file manually
+    local in_program=false
+    local package=""
+    local installer=""
+    while IFS= read -r line; do
+        # Skip lines that are comments or not within the "blind-installs" section
+        if [[ $line =~ ^\s*# || $line =~ ^\s*[^blind-installs]*: ]]; then
+            continue
+        fi
 
-# wrap up and close 
+        # Check if we are in the blind-installs section
+        if [[ $line == "blind-installs:" ]]; then
+            in_program=true
+            continue
+        fi
 
+        # NOTE this assumes that the order of these arguements are in this specific order
+        # and that these exist in the yaml file, probably fine since that should be 
+        # documented in the yaml file itself.
+
+        # WARNING TODO BUGFIX - SEE install_config_applications issue
+        if [[ $in_program == true && $line == *"command"* ]]; then
+            # get command value 
+            command=$(echo "$line" | awk -F": " '{print $2}')
+            $print "🌵blind-install🌵 command: [$command]"
+            ($command)
+        fi
+    done < "$file"
+}
 
 # execute functions
 set_installer_access # prompts sudo access and validates default package manager
 install_homebrew
-# install_zsh
-# install_ohmyzsh
+install_zsh
+install_ohmyzsh
 install_config_applications "$config_file"
+config_blind_installs "$config_file"
+
 terminate_script 0
