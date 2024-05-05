@@ -457,7 +457,7 @@ function config_blind_installs () {
     print_func "\n${highlight}🐠 config_blind_installs complete.${reset_format}\n=========="
 }
 
-# execute functions
+# main functions
 set_installer_access # prompts sudo access and validates default package manager
 install_homebrew
 install_zsh

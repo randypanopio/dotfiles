@@ -118,13 +118,8 @@ cli-programs:
   {{- end }}  
 {{ end }}
 
-workflow:
-  - ide: code
-
 # custom unvalidated installation commands
 blind-installs:
-  - command: echo test
-  - command: echo "blind install execution"
   # Oh-My-ZSH plugins
   # autosuggesions plugin
   - command: git clone https://github.com/zsh-users/zsh-autosuggestions.git $ZSH_CUSTOM/plugins/zsh-autosuggestions
