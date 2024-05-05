@@ -47,13 +47,9 @@ function terminate_script(){
     fi
 
     if [[ $exit_code == 1 ]]; then
-        print_func "${warn_highlight}"
-        print_func "⚠️  Script was terminated early!"
-        print_func "${reset_format}"
+        print_func "\n${warn_highlight}⚠️ Script was terminated early!${reset_format}\n"
     else
-        print_func "${highlight}"
-        print_func "⚓ Run once base install script complete. Yipee! Restart/Logout to finish setup."
-        print_func "${reset_format}"
+        print_func "\n${highlight}⚓ Run once base install script complete. Yipee! Restart/Logout to finish setup.${reset_format}\n"
     fi
     exit "$exit_code"
 }
@@ -80,9 +76,7 @@ function install_cli_application() {
     if [[ -z "${aliases[@]}" ]]; then
         # directly check the passed application name if it is available
         if is_app_available "$application"; then
-            print_func "${highlight}"
-            print_func "⚓ $application installed! found at: $(which "$application")"
-            print_func "${reset_format}"
+            print_func "\n${highlight}⚓ $application installed! found at: $(which "$application")${reset_format}\n"
             fully_installed=true
         else
             fully_installed=false
@@ -106,9 +100,7 @@ function install_cli_application() {
 
     # Install application if any are found missing
     if [[ $fully_installed == false ]]; then
-        print_func "${highlight}"
-        print_func "🚧 Installing $application"
-        print_func "${reset_format}"
+        print_func "\n${highlight}🚧 Installing $application${reset_format}\n"
 
         # format the correct install command and update command respectively (and if elevated)
         local command=""
@@ -159,9 +151,10 @@ function install_cli_application() {
         return 1
     fi
 
+    print_func "\n${highlight}⚓ $application install and upgrade complete.${reset_format}\n=========="
     print_func "${highlight}"
-    print_func "⚓ $application install and upgrade complete."
-    print_func "${reset_format}=========="
+    print_func ""
+    print_func "${reset_format}"
 }
 
 # non cli apps (contains no installation validation)
@@ -184,9 +177,10 @@ function install_application() {
     print_func "⚓ formatted command: [$command]"
     ($command)
 
+    print_func "\n${highlight}⚓ $application install application complete.${reset_format}\n=========="
     print_func "${highlight}"
-    print_func "⚓ $application install application complete."
-    print_func "${reset_format}=========="
+    print_func ""
+    print_func "${reset_format}"
 }
 
 # ========== installs ========== #
@@ -195,33 +189,22 @@ function set_installer_access(){
     privileged_access="sudo"
     print_func "using ${highlight} ${privileged_access} ${reset_format} for elevated privilege"
 
-    print_func "${highlight}"
-    print_func "**WARNING:** This script will bypass all install prompt and will install dependancies automatically"
-    print_func "**WARNING:** Prompting you with sudo access, this is to pass sudo access to specific install commands"
-    print_func "${reset_format}"
+    print_func "\n${highlight}**WARNING:** This script will bypass all install prompt and will install dependancies automatically\n**WARNING:** Prompting you with sudo access, this is to pass sudo access to specific install commands${reset_format}\n"
     $privileged_access echo "** granted ${privileged_access} privilege **"
 
-    print_func "${highlight}"
-    print_func "⚓ set_installer_access complete."
-    print_func "${reset_format}=========="
+    print_func "\n${highlight}⚓ set_installer_access complete.${reset_format}\n=========="
 }
 
-# Install Xcode tools
+# Install Xcode tools TODO build me
 function install_xcode() {
-    print_func "${highlight}"
-    print_func "🐠 Installing Xcode tools."
-    print_func "${reset_format}"
+    print_func "\n${highlight}🐠 Installing Xcode tools.${reset_format}\n"
 
-    print_func "${highlight}"
-    print_func "⚓ install_xcode complete."
-    print_func "${reset_format}=========="    
+    print_func "\n${highlight}⚓ install_xcode complete.${reset_format}\n=========="
 }
 
 # Install Homebrew
 function install_homebrew() {
-    print_func "${highlight}"
-    print_func "🐠 Installing Homebrew and adding to Shell Paths"
-    print_func "${reset_format}"
+    print_func "\n${highlight}🐠 Installing Homebrew and adding to Shell Paths${reset_format}\n"
 
     if is_app_available "brew"; then
         print_func "⚓🍺 Homebrew installed! found at: $(which brew) "
@@ -243,22 +226,16 @@ function install_homebrew() {
     fi
 
     # update, brew should be available 
-    print_func "${highlight}"
-    print_func "⬆️  Updating homebrew and its packages"
-    print_func "${reset_format}"
+    print_func "\n${highlight}⬆️  Updating homebrew and its packages${reset_format}\n"
     (brew update)
     (brew upgrade)
 
-    print_func "${highlight}"
-    print_func "⚓ install_homebrew complete."
-    print_func "${reset_format}=========="    
+    print_func "\n${highlight}⚓ install_homebrew complete.${reset_format}\n=========="
 }
 
 # install zsh and set as default shell
 function install_zsh(){
-    print_func "${highlight}"
-    print_func "🐠 Installing and setting default shell to Zsh"
-    print_func "${reset_format}"
+    print_func "\n${highlight}🐠 Installing and setting default shell to Zsh${reset_format}\n"
 
     # check and install zsh
     if is_app_available "zsh"; then
@@ -298,27 +275,19 @@ function install_zsh(){
         #     print_func "⚠️  An error occurred while setting $new_shell as the default shell! May need to manually change default shell to $new_shell."
         #     print_func "${reset_format}"
         # fi
-        print_func "${highlight}"
-        print_func "⚠️ Skipping validation of setting zsh as the default shell! May need to manually change default shell to zsh."
-        print_func "${reset_format}"
+        print_func "\n${highlight}⚠️ Skipping validation of setting zsh as the default shell! May need to manually change default shell to zsh.${reset_format}\n"
     fi
 
     # update zsh
-    print_func "${highlight}"
-    print_func "⬆️  Updating zsh"
-    print_func "${reset_format}"
+    print_func "\n${highlight}⬆️  Updating zsh${reset_format}\n"
     ($default_installer upgrade --quiet zsh)
 
-    print_func "${highlight}"
-    print_func "⚓ install_zsh complete."
-    print_func "${reset_format}=========="    
+    print_func "\n${highlight}⚓ install_zsh complete.${reset_format}\n=========="
 }
 
 # install oh-my-zsh
 function install_ohmyzsh(){
-    print_func "${highlight}"
-    print_func "🐠 Installing oh-my-zsh"
-    print_func "${reset_format}"
+    print_func "\n${highlight}🐠 Installing oh-my-zsh${reset_format}\n"
 
     # check if zsh is avail    
     if ! is_app_available "zsh"; then
@@ -348,23 +317,17 @@ function install_ohmyzsh(){
         fi
     fi
     # update
-    print_func "${highlight}"
-    print_func "⬆️  Updating oh-my-zsh"
-    print_func "${reset_format}"
+    print_func "\n${highlight}⬆️  Updating oh-my-zsh${reset_format}\n"
     ("$ZSH/tools/upgrade.sh")
 
-    print_func "${highlight}"
-    print_func "⚓ install_ohmyzsh complete."
-    print_func "${reset_format}=========="      
+    print_func "\n${highlight}⚓ install_ohmyzsh complete.${reset_format}\n=========="
 }
 
 
 # Install remaining applications
 function install_config_applications () {
     local file="$1"
-    print_func "${highlight}"
-    print_func "🐠 Parsing: [$config_file], for additional application installs"
-    print_func "${reset_format}"
+    print_func "\n${highlight}🐠 Parsing: [$config_file], for additional application installs${reset_format}\n"
 
     # parse config file manually
     local in_program=false
@@ -421,14 +384,13 @@ function install_config_applications () {
             fi
         fi
     done < "$file"
+    print_func "\n${highlight}⚓ install_config_applications complete.${reset_format}\n=========="
 }
 
 # blindly install remote/custom install commands, should require at least brew and git
 function config_blind_installs () {
     local file="$1"
-    print_func "${highlight}"
-    print_func "🐠 Parsing: [$config_file], for additional blind arbitrary installations. AKA custom external scripts."
-    print_func "${reset_format}"
+    print_func "\n${highlight}🐠 Parsing: [$config_file], for additional blind arbitrary installations. AKA custom external scripts${reset_format}\n"
 
     # parse config file manually
     local in_program=false
@@ -459,9 +421,8 @@ function config_blind_installs () {
             ($command)
         fi
     done < "$file"
+    print_func "\n${highlight}⚓ config_blind_installs complete.${reset_format}\n=========="
 }
-
-# MACO SCRIPT TODO add xcode
 
 # execute functions
 set_installer_access # prompts sudo access and validates default package manager
