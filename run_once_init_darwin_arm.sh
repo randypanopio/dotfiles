@@ -93,9 +93,7 @@ function install_cli_application() {
                 break
             fi
         done
-        print_func "${highlight}"
-        print_func "⚓ $application (and it's aliases) are installed!"
-        print_func "${reset_format}"
+        print_func "\n${highlight}⚓ $application (and it's aliases) are installed!${reset_format}\n"
     fi
 
     # Install application if any are found missing
@@ -113,6 +111,7 @@ function install_cli_application() {
             return 1
         fi
         print_func "⚓ formatted command: [$command]"
+        # __ execute command __
         ($command)
 
         # validate if installation was succesful
@@ -152,9 +151,6 @@ function install_cli_application() {
     fi
 
     print_func "\n${highlight}⚓ $application install and upgrade complete.${reset_format}\n=========="
-    print_func "${highlight}"
-    print_func ""
-    print_func "${reset_format}"
 }
 
 # non cli apps (contains no installation validation)
@@ -175,12 +171,10 @@ function install_application() {
         return 1
     fi
     print_func "⚓ formatted command: [$command]"
+    # __ execute command __
     ($command)
 
     print_func "\n${highlight}⚓ $application install application complete.${reset_format}\n=========="
-    print_func "${highlight}"
-    print_func ""
-    print_func "${reset_format}"
 }
 
 # ========== installs ========== #
