@@ -1,17 +1,25 @@
 # Custom personal config files used by my installation scripts
+# TODO use another template (.chezmoitemplates) to refactor the multiple duplicates
 
 # List of programs to install
-# 
 # installer: 
 # aliases: optional aliases to crosscheck for install. EG neovim -> nvim 
 programs:
-  # Core Tools
+  # Development Tools
   - package: git
-    installer: apt-get
-    aliases: [] 
-  - package: neovim
-    installer: apt-get
-    aliases: [nvim]
+    installer: {{ if eq .chezmoi.os "darwin" -}}
+      brew
+    {{- else if eq .chezmoi.osRelease.id "ubuntu" -}}
+      apt-get
+    {{- end }}
+    aliases: []
+{{- if eq .chezmoi.os "darwin" }}
+  # xcode should cover most of the required clitools
+  # use development on Linux env if need be
+  - package: llvm
+    installer: brew
+    aliases: [clang]  
+{{- else if eq .chezmoi.osRelease.id "ubuntu" }}
   - package: build-essential
     installer: apt-get
     aliases: [gcc, make, g++]
@@ -20,35 +28,57 @@ programs:
     aliases: []
   - package: valgrind
     installer: apt-get
-    aliases: []    
+    aliases: []
+{{- end }}
 
   # Languages
   - package: python3
-    installer: apt-get
+    installer: {{ if eq .chezmoi.os "darwin" -}}
+      brew
+    {{- else if eq .chezmoi.osRelease.id "ubuntu" -}}
+      apt-get
+    {{- end }}
     aliases: []
   # JS 
   - package: nodejs
-    installer: apt
+    installer: {{ if eq .chezmoi.os "darwin" -}}
+      brew
+    {{- else if eq .chezmoi.osRelease.id "ubuntu" -}}
+     apt
+    {{- end }}
     aliases: []
   - package: npm
-    installer: apt
+    installer: {{ if eq .chezmoi.os "darwin" -}}
+      brew
+    {{- else if eq .chezmoi.osRelease.id "ubuntu" -}}
+     apt
+    {{- end }}
     aliases: []
   # TODO dotnet SDK and runtimes
   # TODO java SDK and runtimes
 
   # Productivity Tools
+  - package: neovim
+    installer: {{ if eq .chezmoi.os "darwin" -}}
+      brew
+    {{- else if eq .chezmoi.osRelease.id "ubuntu" -}}
+      apt-get
+    {{- end }}
+    aliases: [nvim]  
   - package: tmux
-    installer: apt-get
+    installer: {{ if eq .chezmoi.os "darwin" -}}
+      brew
+    {{- else if eq .chezmoi.osRelease.id "ubuntu" -}}
+      apt-get
+    {{- end }}
     aliases: []
   - package: tree
-    installer: apt-get
+    installer: {{ if eq .chezmoi.os "darwin" -}}
+      brew
+    {{- else if eq .chezmoi.osRelease.id "ubuntu" -}}
+      apt-get
+    {{- end }}
     aliases: []
-  # Do not install docker on WSL, it should instead use the windows native version, and pipe it to WSL
-  # Do not install VSCode on WSL, it should instead use windows native version, and pipe it to WSL. 
-  # Only install with platforms with Homebrew 
-  # - package: visual-studio-code
-  #   installer: brew
-  #   aliases: [code]
   # open source vpn client, compatible with fortinet vpns
   - package: openfortivpn
     installer: apt-get
@@ -57,9 +87,29 @@ programs:
   - package: chezmoi
     installer: brew
     aliases: []
+  # clipboard piping tool
+{{- if eq .chezmoi.os "darwin" }} 
+  # pbcopy should be installed?
+{{ else if eq .chezmoi.osRelease.id "ubuntu" }}
+  - package: xclip
+    installer: apt
+    aliases: []
+{{ end -}}
+# VSCode installation
+{{ if not (eq (substr (int (sub (len .chezmoi.kernel.osrelease) 4)) (len .chezmoi.kernel.osrelease) .chezmoi.kernel.osrelease) "WSL2")}}
+  # Do not install on WSL, it should instead use windows native version, and pipe it to WSL.
+  # Only (x86_64 linux OR Darwin) - Homebrew installation
+  {{ if (or (eq .chezmoi.os "darwin") (and (eq .chezmoi.osRelease.id "ubuntu") (or (eq .chezmoi.arch "x86_64") (eq .chezmoi.arch "amd64")))) }}
+  - package: visual-studio-code
+    installer: brew
+    aliases: [code]
+    # TODO maybe include a Docker auto setup as well
+  {{ end }}
+{{- else -}}
+# unsupported platform, skipping VSCode
+{{ end }}
 
-
-others:
-  - elements: something
+workflow:
+  - ide: code
 
 # leave this trailing comment for the parser

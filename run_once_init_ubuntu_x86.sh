@@ -325,6 +325,7 @@ function install_config_applications () {
     done < "$file"
 }
 
+# MACO SCRIPT TODO add xcode
 
 # zsh-autosuggestions
 
