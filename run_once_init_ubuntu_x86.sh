@@ -40,6 +40,10 @@ highlight="\e[34m" # red
 warn_highlight="\e[31m" # blue
 reset_format="\e[0m"
 print="echo -e"
+function print_func() {
+    message=${1}
+    echo "$message"
+}
 # highlight text: ${highlight} <text> ${reset_format} 
 
 # ========== global variables ========== #

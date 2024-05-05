@@ -81,7 +81,11 @@ cli-programs:
     aliases: []
   # open source vpn client, compatible with fortinet vpns
   - package: openfortivpn
-    installer: apt-get
+    installer: {{ if eq .chezmoi.os "darwin" -}}
+      brew
+    {{- else if eq .chezmoi.osRelease.id "ubuntu" -}}
+      apt-get
+    {{- end }}
     aliases: []
   # dotfile manager
   - package: chezmoi
@@ -96,17 +100,22 @@ cli-programs:
     aliases: []
 {{ end -}}
 # VSCode installation
-{{ if not (eq (substr (int (sub (len .chezmoi.kernel.osrelease) 4)) (len .chezmoi.kernel.osrelease) .chezmoi.kernel.osrelease) "WSL2")}}
-  # Do not install on WSL, it should instead use windows native version, and pipe it to WSL.
-  # Only (x86_64 linux OR Darwin) - Homebrew installation
-  {{ if (or (eq .chezmoi.os "darwin") (and (eq .chezmoi.osRelease.id "ubuntu") (or (eq .chezmoi.arch "x86_64") (eq .chezmoi.arch "amd64")))) }}
+# TODO maybe include a Docker auto setup as well
+# This wonk is to prevent checking non-existing data
+{{ if eq .chezmoi.os "darwin" }}
   - package: visual-studio-code
     installer: brew
     aliases: [code]
-    # TODO maybe include a Docker auto setup as well
-  {{ end }}
-{{- else -}}
-# unsupported platform, skipping VSCode
+{{ else if eq .chezmoi.osRelease.id "ubuntu" }}
+  # Only (x86_64 or AMD64 linux) - Homebrew installation
+  {{ if (or (eq .chezmoi.arch "x86_64") (eq .chezmoi.arch "amd64")) }}
+  # Do not install on WSL, it should instead use windows native version, and pipe it to WSL.
+  {{ if not (eq (substr (int (sub (len .chezmoi.kernel.osRelease) 4)) (len .chezmoi.kernel.osRelease) .chezmoi.kernel.osRelease) "WSL2")}}
+  - package: visual-studio-code
+    installer: brew
+    aliases: [code]
+  {{- end }}
+  {{- end }}  
 {{ end }}
 
 workflow:
