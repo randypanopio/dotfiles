@@ -110,7 +110,7 @@ cli-programs:
   # Only (x86_64 or AMD64 linux) - Homebrew installation
   {{ if (or (eq .chezmoi.arch "x86_64") (eq .chezmoi.arch "amd64")) }}
   # Do not install on WSL, it should instead use windows native version, and pipe it to WSL.
-  {{ if not (eq (substr (int (sub (len .chezmoi.kernel.osRelease) 4)) (len .chezmoi.kernel.osRelease) .chezmoi.kernel.osRelease) "WSL2")}}
+  {{ if not (eq (substr (int (sub (len .chezmoi.kernel.osrelease) 4)) (len .chezmoi.kernel.osrelease) .chezmoi.kernel.osrelease) "WSL2")}}
   - package: visual-studio-code
     installer: brew
     aliases: [code]
