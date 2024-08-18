@@ -40,8 +40,8 @@ warn_highlight="\e[31m" # blue
 reset_format="\e[0m"
 function print_func() {
     message=${1}
-    # shellcheck disable=SC2059
-    printf "${message}\n"
+    # printf "${message}\n"
+    printf "%s\n" "$message"
 }
 
 # highlight text: ${highlight} <text> ${reset_format} 
@@ -247,6 +247,7 @@ function install_homebrew() {
         # https://github.com/Homebrew/install/#install-homebrew-on-macos-or-linux
         # subshell without elevated access?
         (NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)")
+        # TODO add brew to path steps
     fi
 
     # Check installation status
@@ -446,12 +447,15 @@ function config_blind_installs () {
         # and that these exist in the yaml file, probably fine since that should be 
         # documented in the yaml file itself.
 
+        # include predefined variables, but too lazy so just sourcing the whole thing 
+        # source ~/.zshrc
+
         # WARNING TODO BUGFIX - SEE install_config_applications issue
         if [[ $in_program == true && $line == *"command"* ]]; then
             # get command value 
             command=$(echo "$line" | awk -F": " '{print $2}')
             print_func "🌵blind-install🌵 command: [$command]"
-            ($command)
+            eval $command
         fi
     done < "$file"
     print_func "\n${highlight}🐠 config_blind_installs complete.${reset_format}\n=========="
