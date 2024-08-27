@@ -193,6 +193,11 @@ function set_installer_access(){
 function install_xcode() {
     print_func "\n${highlight}🐠 Installing Xcode tools.${reset_format}\n"
 
+    # More important to validate installation since likely it should be installed
+    # CLI based install (might not work)
+    ($privileged_access xcode-select — install)
+    # I might get prompted for this though, maybe push to top of script execution?
+    # I do not thing this is possible, but could validate
     print_func "\n${highlight}⚓ install_xcode complete.${reset_format}\n=========="
 }
 
