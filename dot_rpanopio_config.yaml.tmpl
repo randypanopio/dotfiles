@@ -127,6 +127,14 @@ blind-installs:
 
 {{ if eq .chezmoi.os "darwin" }}
   - command: echo "running OSX blind installs"
+  # autosuggesions plugin
+  - command: git clone https://github.com/zsh-users/zsh-autosuggestions.git $HOME/.oh-my-zsh/custom/plugins/zsh-autosuggestions
+  # zsh-syntax-highlighting plugin
+  - command: git clone https://github.com/zsh-users/zsh-syntax-highlighting.git $HOME/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting
+  # zsh-fast-syntax-highlighting plugin
+  - command: git clone https://github.com/zdharma-continuum/fast-syntax-highlighting.git $HOME/.oh-my-zsh/custom/plugins/fast-syntax-highlighting
+# zsh-autocomplete plugin
+  - command: git clone --depth 1 -- https://github.com/marlonrichert/zsh-autocomplete.git $HOME/.oh-my-zsh/custom/plugins/zsh-autocomplete
 {{ else if eq .chezmoi.osRelease.id "ubuntu" }}
   - command: echo "running Ubuntu blind installs"
   - command: echo $HOME

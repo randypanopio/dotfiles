@@ -416,8 +416,7 @@ function config_blind_installs () {
             # get command value 
             command=$(echo "$line" | awk -F": " '{print $2}')
             print_func "🌵blind-install🌵 command: [$command]"
-            echo ""
-            ($command)
+            eval $command
         fi
     done < "$file"
     print_func "\n${highlight}⚓ config_blind_installs complete.${reset_format}\n=========="
