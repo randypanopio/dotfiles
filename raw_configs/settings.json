@@ -1,0 +1,30 @@
+{
+    "security.workspace.trust.untrustedFiles": "open",
+    "editor.minimap.enabled": false,
+    "editor.wordWrap": "on",
+    "explorer.confirmDelete": false,
+    "redhat.telemetry.enabled": false,
+    "cmake.configureOnOpen": true,
+    "C_Cpp.intelliSenseEngine": "disabled",
+    "C_Cpp.default.configurationProvider": "ms-vscode.cpptools",
+  
+    "CodeGPT.apiKey": "CodeGPT Plus Beta",
+    "git.confirmSync": false,
+    "cloudcode.duetAI.project": "ddiligence-project",
+    "git.autofetch": "all",
+    "settingsSync.ignoredExtensions": [
+        "njpwerner.autodocstring"
+    ],
+    "autoDocstring.docstringFormat": "sphinx",
+    "workbench.colorTheme": "Neon Night - (No Font Styles)",
+    "terminal.integrated.enableImages": true,
+    "explorer.confirmDragAndDrop": false,
+    "C_Cpp.default.cppStandard": "c++11",
+    "python.linting.pylintArgs": [
+        "--disable=C0116"
+    ],
+    "workbench.activityBar.location": "hidden",
+
+
+    
+}
